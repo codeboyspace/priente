@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 class AnimatedProgressBar extends StatefulWidget {
   final Duration duration;
 
-  const AnimatedProgressBar({Key? key, required this.duration}) : super(key: key);
+  const AnimatedProgressBar({super.key, required this.duration});
 
   @override
   _AnimatedProgressBarState createState() => _AnimatedProgressBarState();
@@ -35,7 +35,7 @@ class _AnimatedProgressBarState extends State<AnimatedProgressBar>
       builder: (context, child) {
         return LinearProgressIndicator(
           value: 1.0 - _controller.value, // Reverse progress direction
-          valueColor: AlwaysStoppedAnimation<Color>(Colors.white), // Line color
+          valueColor: const AlwaysStoppedAnimation<Color>(Colors.white), // Line color
           backgroundColor: Colors.white.withOpacity(0.3), // Background line color
         );
       },

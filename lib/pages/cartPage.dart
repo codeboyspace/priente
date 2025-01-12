@@ -14,11 +14,11 @@ class CartPage extends StatefulWidget {
   
   final Future<bool?> Function() onCheckout; // Callback for checkout actio
   const CartPage({
-    Key? key,
+    super.key,
     required this.cartItems,
     required this.onDelete,
     required this.onCheckout,
-  }) : super(key: key);
+  });
 
   @override
   _CartPageState createState() => _CartPageState();
@@ -106,7 +106,7 @@ class _CartPageState extends State<CartPage> {
                             Text("Instructions: ${item['instructions']}"),
                             Text("Print Service: ${item['printService']}"),
                             Text("Color Option: ${item['colorOption']}"),
-                            Text("Files: ${files}"),
+                            Text("Files: $files"),
                             
                           ],
                         ),
@@ -192,14 +192,14 @@ onPressed: () async {
       builder: (BuildContext context) {
         return Dialog(
           child: Padding(
-            padding: EdgeInsets.all(20.0),
+            padding: const EdgeInsets.all(20.0),
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                CircularProgressIndicator(),  // Circular loader
-                SizedBox(height: 20),
+                const CircularProgressIndicator(),  // Circular loader
+                const SizedBox(height: 20),
                 // Display random fun message
-                Text(getRandomMessage(), style: TextStyle(fontSize: 16, fontStyle: FontStyle.italic)),
+                Text(getRandomMessage(), style: const TextStyle(fontSize: 16, fontStyle: FontStyle.italic)),
               ],
             ),
           ),
@@ -230,7 +230,7 @@ onPressed: () async {
     final cartJson = jsonEncode(serializableCart);
 
     // Simulate processing (optional delay for demonstration)
-    await Future.delayed(Duration(seconds: 2));
+    await Future.delayed(const Duration(seconds: 2));
 
     // Close the loading dialog
     Navigator.pop(context);

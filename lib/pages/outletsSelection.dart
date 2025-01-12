@@ -7,7 +7,7 @@ import 'package:printee/pages/shopdetails.dart';
 class ShopListPage extends StatefulWidget {
   final String cartJson; // Accept cart data as JSON
 
-  const ShopListPage({Key? key, required this.cartJson}) : super(key: key);
+  const ShopListPage({super.key, required this.cartJson});
 
   @override
   State<ShopListPage> createState() => _ShopListPageState();
@@ -113,11 +113,11 @@ class _ShopListPageState extends State<ShopListPage> {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           // Shop Icon
-                          CircleAvatar(
+                          const CircleAvatar(
                             radius: 35,
                             backgroundColor:
-                                const Color.fromARGB(150, 98, 171, 184),
-                            child: const Icon(
+                                Color.fromARGB(150, 98, 171, 184),
+                            child: Icon(
                               Icons.store,
                               size: 40,
                               color: Color.fromARGB(255, 98, 171, 184),

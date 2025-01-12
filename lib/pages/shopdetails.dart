@@ -6,10 +6,10 @@ class ShopDetailsPage extends StatelessWidget {
   final String cartJson; // This is the raw JSON string
 
   const ShopDetailsPage({
-    Key? key,
+    super.key,
     required this.shop,
     required this.cartJson, // Raw JSON passed from previous page
-  }) : super(key: key);
+  });
 
   /// Decode the cart JSON string into a list of cart items
   List<Map<String, dynamic>> getCartItems() {
@@ -124,7 +124,7 @@ double calculateTotalCost(List<Map<String, dynamic>> cartItems) {
                       "- ${item['copies']} copies of ${item['printService']} (${item['colorOption']})",
                       style: const TextStyle(fontSize: 16),
                     );
-                  }).toList(),
+                  }),
                 ],
               ),
             ),

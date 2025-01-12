@@ -23,7 +23,7 @@ class _HomepageState extends State<Homepage> {
   static const Color successGreen = Color(0xFF4CAF50);
   static const Color errorRed = Color(0xFFF44336);
   final Map<String, LinearGradient> _colorOptionGradients = {
-    'Color': LinearGradient(
+    'Color': const LinearGradient(
       colors: [
         Colors.blue,
         Colors.purple,
@@ -47,7 +47,7 @@ class _HomepageState extends State<Homepage> {
 
   final TextEditingController _copiesController = TextEditingController();
   final PageController _pageController = PageController();
-  List<Map<String, Object?>> _cartItems = [];
+  final List<Map<String, Object?>> _cartItems = [];
   int _currentPage = 0;
   int _selectedTabIndex = 0;
   bool _showcoloroption = true;
@@ -192,6 +192,7 @@ class _HomepageState extends State<Homepage> {
                             },
                             onCheckout: () async {
                               _checkout();
+                              return null;
                             },
                           ),
                         ),
@@ -200,7 +201,7 @@ class _HomepageState extends State<Homepage> {
                     style: TextButton.styleFrom(
                       backgroundColor: const Color.fromARGB(
                           255, 106, 175, 231), // Button background color
-                      padding: EdgeInsets.symmetric(
+                      padding: const EdgeInsets.symmetric(
                           vertical: 10, horizontal: 16), // Adjust padding
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(
@@ -219,11 +220,11 @@ class _HomepageState extends State<Homepage> {
               ],
             ),
             // Animated progress bar at the bottom
-            Positioned(
+            const Positioned(
               bottom: -6, // Adjust position to align at the bottom
               left: 0,
               right: 0,
-              child: AnimatedProgressBar(duration: const Duration(seconds: 3)),
+              child: AnimatedProgressBar(duration: Duration(seconds: 3)),
             ),
           ],
         ),
@@ -294,13 +295,13 @@ class _HomepageState extends State<Homepage> {
       _selectedPrintService = null;
       _selectedColorOption = null;
       _showcoloroption = true;
-      _selectedFiles?.clear();
+      _selectedFiles.clear();
     });
   }
 
   @override
   void _validateAndProceed() {
-    if (_selectedFiles == null || _selectedFiles.isEmpty) {
+    if (_selectedFiles.isEmpty) {
       _showSnackBar('Please select files to print', backgroundColor: errorRed);
       return;
     }
@@ -333,7 +334,7 @@ class _HomepageState extends State<Homepage> {
         _selectedPrintService == null ||
         _selectedColorOption == null ||
         _isLocationSet == false ||
-        (_selectedFiles?.isEmpty ?? true)) {
+        (_selectedFiles.isEmpty ?? true)) {
       _showSnackBar('complete all fields', backgroundColor: errorRed);
       return;
     }
@@ -343,7 +344,7 @@ class _HomepageState extends State<Homepage> {
       'instructions': _instructionsController.text,
       'printService': _selectedPrintService!,
       'colorOption': _selectedColorOption!,
-      'files': _selectedFiles?.map((file) => file.name).toList() ?? [],
+      'files': _selectedFiles.map((file) => file.name).toList() ?? [],
     };
 
     setState(() {
@@ -498,6 +499,7 @@ class _HomepageState extends State<Homepage> {
                           },
                           onCheckout: () async {
                             _checkout();
+                            return null;
                           },
                         ),
                       ),
@@ -567,36 +569,109 @@ class _HomepageState extends State<Homepage> {
       resizeToAvoidBottomInset: true,
       backgroundColor: backgroundWhite,
       bottomNavigationBar: ClipRRect(
-        borderRadius: const BorderRadius.only(
-          topLeft: Radius.circular(20),
-          topRight: Radius.circular(20),
+  borderRadius: const BorderRadius.only(
+    topLeft: Radius.circular(20),
+    topRight: Radius.circular(20),
+  ),
+  child: Container(
+    color: Colors.white, // White background for the bottom bar
+    child: Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        // Border on top like a rectangular line
+        Container(
+          height: 2, 
+          color: Colors.grey.shade300, // Light gray border color
         ),
-        child: Container(
-          color: successGreen,
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 15.0, vertical: 20),
-            child: GNav(
-              gap: 8,
-              activeColor: Colors.white,
-              color: Colors.white,
-              tabBorderRadius: 65,
-              tabBackgroundColor: const Color.fromRGBO(111, 221, 116, 0.548),
-              padding: const EdgeInsets.all(16),
-              tabs: const [
-                GButton(icon: Icons.print, text: "Print"),
-                GButton(icon: Icons.delivery_dining_outlined, text: "Track"),
-                GButton(icon: Icons.history, text: "History"),
-                GButton(icon: Icons.settings, text: "Settings"),
-              ],
-              onTabChange: (index) {
-                setState(() {
-                  _selectedTabIndex = index;
-                });
-              },
-            ),
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 10),
+          child: GNav(
+            gap: 8,
+            activeColor: Colors.blue, // Blue color for selected tab
+            color: Colors.grey, // Gray color for unselected tabs
+            iconSize: 30, // Larger icons for better touch
+            tabBorderRadius: 50, // Rounded corners for each tab
+            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+            duration: const Duration(milliseconds: 300), // Smooth transition for active tab
+            tabs: [
+              GButton(
+                icon: Icons.home,
+                text: "Home",
+                iconColor: Colors.grey, // Gray for unselected icons
+                textColor: Colors.grey, // Gray for unselected text
+iconActiveColor: Colors.blue, // Blue for selected icon
+  textStyle: TextStyle(
+    color: Colors.blue, 
+    fontWeight: FontWeight.bold,  // Making text bold
+    fontFamily: 'RobotoSlab',  // Using the custom font
+  ), // Blue text fo
+                onPressed: () {
+                  // Animation or transition here when tapped
+                },
+              ),
+              GButton(
+                icon: Icons.delivery_dining,
+                text: "Track",
+                iconColor: Colors.grey, // Gray for unselected icons
+                textColor: Colors.grey, // Gray for unselected text
+                iconActiveColor: Colors.blue, // Blue for selected icon
+                
+  textStyle: TextStyle(
+    color: Colors.blue, 
+    fontWeight: FontWeight.bold,  // Making text bold
+    fontFamily: 'RobotoSlab',  // Using the custom font
+  ), // Blue text fo// Blue text for selected item
+                onPressed: () {
+                  // Animation or transition here when tapped
+                },
+              ),
+              GButton(
+  icon: Icons.history,
+  text: "History",
+  iconColor: Colors.grey, // Gray for unselected icons
+  textColor: Colors.grey, // Gray for unselected text
+  iconActiveColor: Colors.blue, // Blue for selected icon
+  textStyle: TextStyle(
+    color: Colors.blue, 
+    fontWeight: FontWeight.bold,  // Making text bold
+    fontFamily: 'RobotoSlab',  // Using the custom font
+  ), // Blue text for selected item
+  onPressed: () {
+    // Animation or transition here when tapped
+  },
+),
+
+              GButton(
+                icon: Icons.settings,
+                text: "Settings",
+                iconColor: Colors.grey, // Gray for unselected icons
+                textColor: Colors.grey, // Gray for unselected text
+              iconActiveColor: Colors.blue, // Blue for selected icon
+  textStyle: TextStyle(
+    color: Colors.blue, 
+    fontWeight: FontWeight.bold,  // Making text bold
+    fontFamily: 'RobotoSlab',  // Using the custom font
+  ), // Blue text fo
+                onPressed: () {
+                  // Animation or transition here when tapped
+                },
+              ),
+            ],
+            onTabChange: (index) {
+              setState(() {
+                _selectedTabIndex = index;
+              });
+            },
           ),
         ),
-      ),
+      ],
+    ),
+  ),
+),
+
+
+
+
       body: _selectedTabIndex == 1
           ? const Center(
               child: SizedBox(
@@ -1021,7 +1096,7 @@ class _HomepageState extends State<Homepage> {
                                       size: 18,
                                       color: Colors.grey,
                                     ),
-                                    padding: EdgeInsets.only(
+                                    padding: const EdgeInsets.only(
                                       right: 1, // Adjust padding dynamically
                                     ),
                                   ),
@@ -1136,7 +1211,7 @@ class _HomepageState extends State<Homepage> {
                                   onPressed: _pickFiles,
                                   icon: const Icon(Icons.attach_file, size: 20),
                                   label: Text(
-                                    _selectedFiles!.isNotEmpty
+                                    _selectedFiles.isNotEmpty
                                         ? '${_selectedFiles.length} Files • ${_getTotalFileSize()} MB'
                                         : 'Select Files',
                                   ),
@@ -1152,14 +1227,14 @@ class _HomepageState extends State<Homepage> {
                                   ),
                                 ),
                               ),
-                              if (_selectedFiles!.isNotEmpty)
+                              if (_selectedFiles.isNotEmpty)
                                 Padding(
                                   padding: const EdgeInsets.only(left: 8.0),
                                   child: IconButton(
                                     onPressed: () {
                                       setState(() {
                                         _selectedFiles
-                                            ?.clear(); // Clear the selected files
+                                            .clear(); // Clear the selected files
                                       });
                                     },
                                     icon: const Icon(
