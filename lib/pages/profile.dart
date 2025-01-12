@@ -126,7 +126,7 @@ class _LoginState extends State<Login> with SingleTickerProviderStateMixin {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             // Title for the form
-                            Padding(
+                            const Padding (
                               padding: const EdgeInsets.symmetric(vertical: 16),
                               child: Row(
                                 mainAxisAlignment: MainAxisAlignment.center, // Centers the text and icon

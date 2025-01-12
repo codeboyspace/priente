@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:google_nav_bar/google_nav_bar.dart';
 import 'package:file_picker/file_picker.dart';
 import 'animatedprogressbar.dart';
-import 'package:fluentui_system_icons/fluentui_system_icons.dart';
+import 'package:animated_bottom_navigation_bar/animated_bottom_navigation_bar.dart';
 import 'package:printee/pages/cartPage.dart';
 import 'package:stroke_text/stroke_text.dart';
 import 'package:printee/pages/setLocation.dart';
