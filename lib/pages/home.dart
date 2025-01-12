@@ -9,7 +9,7 @@ import 'package:stroke_text/stroke_text.dart';
 import 'package:printee/pages/setLocation.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:path_provider/path_provider.dart';
-
+import 'profile.dart';
 class Homepage extends StatefulWidget {
   const Homepage({super.key});
 
@@ -547,7 +547,10 @@ class _HomepageState extends State<Homepage> {
             padding: const EdgeInsets.only(right: 8),
             child: GestureDetector(
               onTap: () {
-                // Handle profile icon click
+                Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => const Login()),
+              );
               },
               child: Container(
                 padding: const EdgeInsets.all(8),
@@ -707,8 +710,8 @@ iconActiveColor: Colors.blue, // Blue for selected icon
                 Center(
                   child: Container(
                     height: 650,
-                    width: 400,
-                    padding: const EdgeInsets.all(24.0),
+                    width: 600,
+                    padding: const EdgeInsets.all(7.0),
                     decoration: BoxDecoration(
                       color: Colors.white,
                       borderRadius: BorderRadius.circular(16),

@@ -70,6 +70,9 @@ flutter:
     - assets/icons/singlesheet.png
     - assets/icons/doublesheet.png
     - assets/icons/calico.png
+    - images/detalhe1.png
+    - images/detalhe2.png
+    - images/fundo.png
     - assets/icons/spiral.png
     - assets/icons/bondsheet.png
   # The following line ensures that the Material Icons font is
@@ -99,6 +102,11 @@ flutter:
         - asset: fonts/RobotoSlab-Regular.ttf
         - asset: fonts/RobotoSlab-Bold.ttf
           weight: 700
+
+    - family: Pacifico
+      fonts:
+        - asset: fonts/Pacifico-Regular.ttf
+          weight: 200
   
   # For details regarding fonts from package dependencies,
   # see https://flutter.dev/to/font-from-package
