@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:mappls_gl/mappls_gl.dart';
 import 'package:flutter/services.dart'; 
-
 void main() {
   runApp(MyApp());
 }

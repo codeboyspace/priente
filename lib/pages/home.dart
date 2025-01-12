@@ -1,13 +1,15 @@
 import 'dart:io';
-
 import 'package:flutter/material.dart';
 import 'package:google_nav_bar/google_nav_bar.dart';
 import 'package:file_picker/file_picker.dart';
+import 'animatedprogressbar.dart';
+import 'package:fluentui_system_icons/fluentui_system_icons.dart';
 import 'package:printee/pages/cartPage.dart';
 import 'package:stroke_text/stroke_text.dart';
 import 'package:printee/pages/setLocation.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:path_provider/path_provider.dart';
+
 class Homepage extends StatefulWidget {
   const Homepage({super.key});
 
@@ -20,12 +22,35 @@ class _HomepageState extends State<Homepage> {
   static const Color backgroundWhite = Color(0xFFFFFFFF);
   static const Color successGreen = Color(0xFF4CAF50);
   static const Color errorRed = Color(0xFFF44336);
+  final Map<String, LinearGradient> _colorOptionGradients = {
+    'Color': LinearGradient(
+      colors: [
+        Colors.blue,
+        Colors.purple,
+        Colors.pink,
+        Colors.orange,
+      ],
+      begin: Alignment.topLeft,
+      end: Alignment.bottomRight,
+    ),
+    'Black & White': LinearGradient(
+      colors: [
+        Colors.black87,
+        Colors.grey.shade600,
+        Colors.grey.shade400,
+        Colors.grey.shade200,
+      ],
+      begin: Alignment.topLeft,
+      end: Alignment.bottomRight,
+    ),
+  };
 
   final TextEditingController _copiesController = TextEditingController();
   final PageController _pageController = PageController();
   List<Map<String, Object?>> _cartItems = [];
   int _currentPage = 0;
   int _selectedTabIndex = 0;
+  bool _showcoloroption = true;
   bool _isLocationSet = false;
   String? _locationCoordinates;
   bool _isButtonEnabled = false;
@@ -34,15 +59,31 @@ class _HomepageState extends State<Homepage> {
   final List<String> _printServices = [
     'Single-sided Printing\t\t2rs/page',
     'Double-sided Printing\t\t2rs/page',
-    'Calico\t\t2rs/page',
-    'Spiral\t\t2rs/page',
+    'Calico-type Printing\t\t2rs/page',
+    'Spiral-type Printing\t\t2rs/page',
     'Bond Sheet Printing\t\t10rs/page',
-    'Others',
   ];
   final List<String> _printcolorselection = [
     'Color',
     'Black and White',
-    'Both(Refer Instructions)',
+  ];
+  final List<Color> _serviceColors = [
+    Colors.lightBlue.shade100,
+    Colors.pink.shade100,
+    Colors.green.shade100,
+    Colors.amber.shade100,
+    Colors.purple.shade100,
+    Colors.teal.shade100,
+    Colors.orange.shade100,
+    Colors.indigo.shade100,
+  ];
+
+  final List<String> _printServiceIcons = [
+    'assets/icons/singlesheet.png', // Icon for Service 1
+    'assets/icons/doublesheet.png', // Icon for Service 2
+    'assets/icons/calico.png', // Icon for Service 3
+    'assets/icons/spiral.png', // Icon for Service 4
+    'assets/icons/bondsheet.png', // Icon for Service 5
   ];
 
   String? _selectedPrintService;
@@ -70,9 +111,11 @@ class _HomepageState extends State<Homepage> {
       if (result != null) {
         final file = result.files.first;
         final newfail = await savefilepermanently(file);
+        setState(() {
+          _selectedFiles.add(file);
+        });
         print("From path${file.path!}");
         print("To path${newfail.path}");
-        _selectedFiles.add(file);
       } else {
         _showSnackBar('File Selection Cancelled', backgroundColor: errorRed);
       }
@@ -80,19 +123,22 @@ class _HomepageState extends State<Homepage> {
       _showSnackBar('Error picking file', backgroundColor: errorRed);
     }
   }
-  
-Future<File> savefilepermanently(PlatformFile file) async{
-  final appstorage = await getApplicationDocumentsDirectory();
-  final newFile=File('${appstorage.path}/${file.name}');
 
-  return File(file.path!).copy(newFile.path);
-}
+  Future<File> savefilepermanently(PlatformFile file) async {
+    final appstorage = await getApplicationDocumentsDirectory();
+    final newFile = File('${appstorage.path}/${file.name}');
 
+    return File(file.path!).copy(newFile.path);
+  }
 
   void _checkIfFieldsAreFilled() {
+    print("Copies: ${_copiesController.text.isNotEmpty}");
+    print("Instructions: ${_instructionsController.text.isNotEmpty}");
+    print("Service selected: ${_selectedPrintService != null}");
     setState(() {
-      _isButtonEnabled = _copiesController.text.isNotEmpty ||
-          _instructionsController.text.isNotEmpty;
+      _isButtonEnabled = (_copiesController.text.isNotEmpty ||
+              _instructionsController.text.isNotEmpty) ||
+          _selectedPrintService != null;
     });
   }
 
@@ -107,16 +153,85 @@ Future<File> savefilepermanently(PlatformFile file) async{
   void _showSnackBar(String message, {Color? backgroundColor}) {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text(
-          message,
-          textAlign: TextAlign.center,
-          style: const TextStyle(fontWeight: FontWeight.bold),
+        content: Stack(
+          clipBehavior: Clip.none,
+          alignment: Alignment.center,
+          children: [
+            // Display message and button if the message is "Item added to cart!"
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Expanded(
+                  child: Text(
+                    message.toUpperCase(), // Make text uppercase
+
+                    textAlign: TextAlign.start,
+                    style: const TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize:
+                          16, // Optional: increase font size for better readability
+                    ),
+                  ),
+                ),
+                if (message == "Item added to cart!")
+                  TextButton(
+                    onPressed: () {
+                      ScaffoldMessenger.of(context).hideCurrentSnackBar();
+                      // Navigate to the CartPage
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => CartPage(
+                            cartItems: _cartItems
+                                .map((item) => item.cast<String, Object>())
+                                .toList(),
+                            onDelete: (index) {
+                              setState(() {
+                                _cartItems.removeAt(index);
+                              });
+                            },
+                            onCheckout: () async {
+                              _checkout();
+                            },
+                          ),
+                        ),
+                      );
+                    },
+                    style: TextButton.styleFrom(
+                      backgroundColor: const Color.fromARGB(
+                          255, 106, 175, 231), // Button background color
+                      padding: EdgeInsets.symmetric(
+                          vertical: 10, horizontal: 16), // Adjust padding
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(
+                            8), // Rounded corners for button
+                      ),
+                    ),
+                    child: const Text(
+                      "VIEW CART",
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.bold, // Make text bold
+                        fontSize: 14, // Optional: Adjust text size for button
+                      ),
+                    ),
+                  ),
+              ],
+            ),
+            // Animated progress bar at the bottom
+            Positioned(
+              bottom: -6, // Adjust position to align at the bottom
+              left: 0,
+              right: 0,
+              child: AnimatedProgressBar(duration: const Duration(seconds: 3)),
+            ),
+          ],
         ),
-        backgroundColor: backgroundColor ?? accentBlue,
+        backgroundColor: backgroundColor ?? Colors.blue,
         duration: const Duration(seconds: 3),
         behavior: SnackBarBehavior.floating,
         shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(20),
+          borderRadius: BorderRadius.circular(8), // Rectangular Snackbar
         ),
         margin: const EdgeInsets.symmetric(horizontal: 50, vertical: 20),
       ),
@@ -178,9 +293,9 @@ Future<File> savefilepermanently(PlatformFile file) async{
     setState(() {
       _selectedPrintService = null;
       _selectedColorOption = null;
+      _showcoloroption = true;
       _selectedFiles?.clear();
     });
-    _showSnackBar('All selections cleared!', backgroundColor: errorRed);
   }
 
   @override
@@ -210,13 +325,16 @@ Future<File> savefilepermanently(PlatformFile file) async{
   }
 
   void _addToCart() {
+    if (!_isLocationSet) {
+      _showSnackBar('Set Your Location');
+      return;
+    }
     if (_copiesController.text.isEmpty ||
-        _instructionsController.text.isEmpty ||
         _selectedPrintService == null ||
         _selectedColorOption == null ||
+        _isLocationSet == false ||
         (_selectedFiles?.isEmpty ?? true)) {
-      _showSnackBar('Please complete all fields before adding to cart.',
-          backgroundColor: errorRed);
+      _showSnackBar('complete all fields', backgroundColor: errorRed);
       return;
     }
 
@@ -232,7 +350,7 @@ Future<File> savefilepermanently(PlatformFile file) async{
       _cartItems.add(cartItem);
     });
 
-    _showSnackBar('Item added to cart!', backgroundColor: successGreen);
+    _showSnackBar('Item added to cart!', backgroundColor: Colors.blue);
     _clearAllFields();
   }
 
@@ -286,74 +404,164 @@ Future<File> savefilepermanently(PlatformFile file) async{
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text(""),
+        backgroundColor: Colors.white,
+        elevation: 0,
+        title: GestureDetector(
+          onTap: () async {
+            PermissionStatus location = await Permission.location.request();
+            if (location == PermissionStatus.granted) {
+              _navigateToLocationPage(context);
+            }
+            if (location == PermissionStatus.denied) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text("This Permission is Recommended")),
+              );
+            }
+            if (location == PermissionStatus.permanentlyDenied) {
+              openAppSettings();
+            }
+          },
+          child: Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: Colors.blue.shade50,
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Icon(
+                  _isLocationSet
+                      ? Icons.location_on
+                      : Icons.help_outline, // Change icon based on condition
+                  color: _isLocationSet
+                      ? Colors.blue
+                      : Colors.grey, // Blue for location set, grey otherwise
+                  size: 20, // Slightly larger size
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Delivery Location',
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: Colors.grey.shade600,
+                        fontWeight: FontWeight.normal,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      _isLocationSet
+                          ? (_locationCoordinates != null &&
+                                  !_locationCoordinates!.contains(','))
+                              ? _locationCoordinates!
+                              : "Current Location"
+                          : "Choose Delivery Location",
+                      style: TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w800,
+                        color: _isLocationSet
+                            ? Colors.blue // Current location in blue color
+                            : Colors.red, // Default color for "Select Location"
+                      ),
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
         actions: [
-          if (true)
-            GestureDetector(
-              onTap: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => CartPage(
-                      cartItems: _cartItems
-                          .map((item) => item.cast<String, Object>())
-                          .toList(),
-                      onDelete: (index) {
-                        setState(() {
-                          _cartItems.removeAt(index);
-                        });
-
-                        Navigator.pop(context);
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) => CartPage(
-                              cartItems: List<Map<String, Object>>.from(_cartItems), // Ensure type safety
-                              onDelete: (index) {
-                                setState(() {
-                                  _cartItems.removeAt(index); // Update parent's cart list
-                                });
-                              },
-                              onCheckout: () {
-                                _checkout();
-                              },
-                            ),
-                          ),
-                        );
-                      },
-                      onCheckout: () {
-                        _checkout();
-                      },
+          // Cart Icon
+          Padding(
+            padding: const EdgeInsets.only(right: 8),
+            child: Stack(
+              alignment: Alignment.center,
+              children: [
+                GestureDetector(
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => CartPage(
+                          cartItems: _cartItems
+                              .map((item) => item.cast<String, Object>())
+                              .toList(),
+                          onDelete: (index) {
+                            setState(() {
+                              _cartItems.removeAt(index);
+                            });
+                          },
+                          onCheckout: () async {
+                            _checkout();
+                          },
+                        ),
+                      ),
+                    );
+                  },
+                  child: Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: Colors.blue.shade50,
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: const Icon(
+                      Icons.shopping_cart,
+                      color: Colors.blue,
+                      size: 23, // Larger icon for better touch target
                     ),
                   ),
-                );
+                ),
+                if (_cartItems.isNotEmpty)
+                  Positioned(
+                    top: 4,
+                    right: 4,
+                    child: Container(
+                      padding: const EdgeInsets.all(4),
+                      decoration: const BoxDecoration(
+                        color: Colors.blue,
+                        shape: BoxShape.circle,
+                      ),
+                      child: Text(
+                        _cartItems.length.toString(),
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 10,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                  ),
+              ],
+            ),
+          ),
+          // Profile Icon
+          const SizedBox(width: 6), // Gap between the icons
+          Padding(
+            padding: const EdgeInsets.only(right: 8),
+            child: GestureDetector(
+              onTap: () {
+                // Handle profile icon click
               },
-              onLongPress: () {
-                _showCartDialog();
-              },
-              child: IconButton(
-  icon: const Icon(Icons.shopping_cart),
-  onPressed: () {
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (context) => CartPage(
-          cartItems: _cartItems.map((item) => item.cast<String, Object>()).toList(),
-          onDelete: (index) {
-            setState(() {
-              _cartItems.removeAt(index); // Update parent cart items
-            });
-          },
-          onCheckout: () {
-            _checkout();
-          },
-        ),
-      ),
-    );
-  },
-),
-
-            )
+              child: Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: Colors.blue.shade50,
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: const Icon(
+                  Icons.person,
+                  color: Colors.blue,
+                  size: 23, // Larger icon for better touch target
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(width: 12), // Gap between the icons
         ],
       ),
       resizeToAvoidBottomInset: true,
@@ -425,270 +633,598 @@ Future<File> savefilepermanently(PlatformFile file) async{
                   child: Container(
                     height: 650,
                     width: 400,
-                    padding: const EdgeInsets.all(16.0),
+                    padding: const EdgeInsets.all(24.0),
                     decoration: BoxDecoration(
-                      color: Colors.blue.shade50,
-                      borderRadius: BorderRadius.circular(10),
-                      boxShadow: const [
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(16),
+                      boxShadow: [
                         BoxShadow(
-                          color: Colors.grey,
-                          blurRadius: 6,
-                          offset: Offset(0, 2),
+                          color: Colors.grey.withOpacity(0.1),
+                          spreadRadius: 0,
+                          blurRadius: 20,
+                          offset: const Offset(0, 4),
                         ),
                       ],
                     ),
                     child: SingleChildScrollView(
-                      padding: const EdgeInsets.only(top: 5),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.stretch,
                         children: [
-                          Padding(
-                            padding: const EdgeInsets.only(bottom: 90.0),
-                            child: Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                              children: [
-                                const Icon(
-                                  Icons.location_on,
-                                  color: Colors.redAccent,
-                                ),
-                                Expanded(
-                                  child: Text(
-                                    _isLocationSet
-                                        ? (_locationCoordinates != null &&
-                                                !_locationCoordinates!
-                                                    .contains(','))
-                                            ? _locationCoordinates!
-                                            : "Current Location"
-                                        : "Select Location",
-                                    style: TextStyle(
-                                      fontSize: 16,
-                                      fontWeight: FontWeight.bold,
-                                      color: _isLocationSet
-                                          ? Colors.green
-                                          : Colors.blueGrey.withOpacity(0.7),
-                                    ),
-                                    overflow: TextOverflow.ellipsis,
-                                  ),
-                                ),
-                                TextButton(
-                                  onPressed: () async {
-                                    PermissionStatus location =
-                                        await Permission.location.request();
-                                    if (location == PermissionStatus.granted) {
-                                      _navigateToLocationPage(context);
-                                    }
-                                    if (location == PermissionStatus.denied) {
-                                      ScaffoldMessenger.of(context)
-                                          .showSnackBar(const SnackBar(
-                                              content: Text("This Permission is Recommended")));
-                                    }
-                                    if (location ==
-                                        PermissionStatus.permanentlyDenied) {
-                                      openAppSettings();
-                                    }
-                                  },
-                                  child: Text(
-                                    _isLocationSet ? "Change" : "Set",
-                                    style: const TextStyle(
-                                      color: Colors.blueAccent,
-                                      fontWeight: FontWeight.bold,
-                                    ),
-                                  ),
-                                ),
-                              ],
+                          // Print Service Selection
+                          Text(
+                            'Select Print Type',
+                            style: TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.grey.shade800,
                             ),
-                          ),
-                          TextField(
-                            controller: _copiesController,
-                            decoration: InputDecoration(
-                              labelText: 'Number of Copies',
-                              border: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(10),
-                              ),
-                              focusedBorder: OutlineInputBorder(
-                                borderSide: const BorderSide(
-                                    color: Colors.blueAccent, width: 2),
-                                borderRadius: BorderRadius.circular(10),
-                              ),
-                              prefixIcon:
-                                  const Icon(Icons.copy, color: Colors.blue),
-                              filled: true,
-                              fillColor: Colors.white,
-                            ),
-                            keyboardType: TextInputType.number,
                           ),
                           const SizedBox(height: 16),
-                          const Text(
-                            'Select Print Service:',
-                            style: TextStyle(
-                                fontSize: 15, fontWeight: FontWeight.bold),
-                          ),
-                          const SizedBox(height: 10),
-                          Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 12),
-                            decoration: BoxDecoration(
-                              color: Colors.white,
-                              border: Border.all(
-                                color: Colors.grey,
-                                width: 1.5,
-                              ),
-                              borderRadius: BorderRadius.circular(8),
-                            ),
-                            child: DropdownButton<String>(
-                              value: _selectedPrintService,
-                              hint: const Text('Choose a Service'),
-                              icon: const Icon(Icons.arrow_drop_down),
-                              isExpanded: true,
-                              underline: const SizedBox(),
-                              items: _printServices.map((String service) {
+
+                          // Horizontal Scrollable Service Grid
+                          SizedBox(
+                            height: 120,
+                            child: ListView.builder(
+                              scrollDirection: Axis.horizontal,
+                              itemCount: _printServices.length,
+                              itemBuilder: (context, index) {
+                                final service = _printServices[index];
                                 final parts = service.split('\t\t');
                                 final serviceName = parts[0];
                                 final servicePrice =
                                     parts.length > 1 ? parts[1] : '';
+                                final isSelected =
+                                    _selectedPrintService == service;
 
-                                return DropdownMenuItem<String>(
-                                  value: service,
-                                  child: Row(
-                                    mainAxisAlignment:
-                                        MainAxisAlignment.spaceBetween,
-                                    children: [
-                                      Text(serviceName),
-                                      Text(
-                                        servicePrice,
-                                        style: TextStyle(
-                                          color:
-                                              Colors.blueGrey.withOpacity(0.5),
+                                // Get the icon path for this service
+                                final iconPath = _printServiceIcons[index];
+
+                                // Cycle through the colors using the index
+                                final backgroundColor = isSelected
+                                    ? Colors.blue.shade700
+                                    : _serviceColors[
+                                        index % _serviceColors.length];
+                                final textColor = isSelected
+                                    ? Colors.white
+                                    : Colors.grey.shade800;
+
+                                return Padding(
+                                  padding: const EdgeInsets.only(right: 12),
+                                  child: GestureDetector(
+                                    onTap: () {
+                                      setState(() {
+                                        _selectedPrintService = service;
+                                        _selectedColorOption =
+                                            null; // Reset color option when service changes
+                                        _showcoloroption = true;
+                                      });
+                                      _checkIfFieldsAreFilled();
+                                    },
+                                    child: Stack(
+                                      clipBehavior: Clip.none,
+                                      children: [
+                                        Container(
+                                          width: 110,
+                                          padding: const EdgeInsets.all(12),
+                                          decoration: BoxDecoration(
+                                            color: backgroundColor,
+                                            borderRadius:
+                                                BorderRadius.circular(12),
+                                            border: Border.all(
+                                              color: isSelected
+                                                  ? Colors.blue
+                                                  : Colors.grey.shade200,
+                                              width: isSelected ? 2 : 1,
+                                            ),
+                                            boxShadow: [
+                                              BoxShadow(
+                                                color: Colors.grey
+                                                    .withOpacity(0.1),
+                                                spreadRadius: 0,
+                                                blurRadius: 10,
+                                                offset: const Offset(0, 2),
+                                              ),
+                                            ],
+                                          ),
+                                          child: Column(
+                                            mainAxisAlignment:
+                                                MainAxisAlignment.center,
+                                            children: [
+                                              Image.asset(
+                                                iconPath, // Use the custom icon
+                                                height: 28,
+                                                color: isSelected
+                                                    ? Colors.white
+                                                    : Colors.grey.shade600,
+                                              ),
+                                              const SizedBox(height: 8),
+                                              Text(
+                                                serviceName,
+                                                style: TextStyle(
+                                                  fontSize: 13,
+                                                  fontWeight: FontWeight.w600,
+                                                  color: textColor,
+                                                ),
+                                                textAlign: TextAlign.center,
+                                                maxLines: 2,
+                                                overflow: TextOverflow.ellipsis,
+                                              ),
+                                              const SizedBox(height: 4),
+                                              Text(
+                                                servicePrice,
+                                                style: TextStyle(
+                                                  fontSize: 12,
+                                                  fontWeight: FontWeight.w600,
+                                                  color: isSelected
+                                                      ? Colors.white
+                                                      : Colors.grey.shade600,
+                                                ),
+                                              ),
+                                            ],
+                                          ),
                                         ),
-                                      ),
-                                    ],
+                                        if (isSelected)
+                                          Positioned(
+                                            top: -4,
+                                            right: -4,
+                                            child: Container(
+                                              padding: const EdgeInsets.all(2),
+                                              decoration: BoxDecoration(
+                                                color: Colors.white,
+                                                shape: BoxShape.circle,
+                                                boxShadow: [
+                                                  BoxShadow(
+                                                    color: Colors.black
+                                                        .withOpacity(0.1),
+                                                    blurRadius: 4,
+                                                    offset: const Offset(0, 2),
+                                                  ),
+                                                ],
+                                              ),
+                                              child: const Icon(
+                                                Icons.check_circle,
+                                                color: Colors.green,
+                                                size:
+                                                    18, // Small size for the tick mark
+                                              ),
+                                            ),
+                                          ),
+                                      ],
+                                    ),
                                   ),
                                 );
-                              }).toList(),
-                              onChanged: (String? newValue) {
-                                setState(() {
-                                  _selectedPrintService = newValue;
-                                });
                               },
                             ),
                           ),
+
+                          // Color Option Selection (shows only when service is selected)
                           if (_selectedPrintService != null) ...[
                             const SizedBox(height: 14),
-                            Container(
-                              padding:
-                                  const EdgeInsets.symmetric(horizontal: 12),
-                              decoration: BoxDecoration(
-                                color: Colors.white,
-                                border: Border.all(
-                                  color: Colors.grey,
-                                  width: 1.5,
+                            AnimatedSize(
+                              duration: const Duration(milliseconds: 700),
+                              curve: Curves.easeOutExpo,
+                              child: AnimatedOpacity(
+                                duration: const Duration(milliseconds: 500),
+                                curve: Curves.easeInOut,
+                                opacity: _showcoloroption ? 1.0 : 0.0,
+                                child: Container(
+                                  height: _showcoloroption ? null : 0,
+                                  padding: _showcoloroption
+                                      ? const EdgeInsets.all(16)
+                                      : EdgeInsets.zero,
+                                  decoration: BoxDecoration(
+                                    color: Colors.grey.shade50,
+                                    borderRadius: BorderRadius.circular(12),
+                                    border:
+                                        Border.all(color: Colors.grey.shade200),
+                                    boxShadow: [
+                                      BoxShadow(
+                                        color: Colors.grey.withOpacity(0.05),
+                                        spreadRadius: 0,
+                                        blurRadius: 10,
+                                        offset: const Offset(0, 2),
+                                      ),
+                                    ],
+                                  ),
+                                  child: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      const SizedBox(height: 12),
+                                      Row(
+                                        children:
+                                            _printcolorselection.map((option) {
+                                          final isSelected =
+                                              _selectedColorOption == option;
+                                          final isColor =
+                                              option.toLowerCase() == 'color';
+
+                                          return Expanded(
+                                            child: GestureDetector(
+                                              onTap: () {
+                                                setState(() {
+                                                  _selectedColorOption = option;
+                                                  _showcoloroption = false;
+                                                });
+                                              },
+                                              child: Container(
+                                                margin:
+                                                    const EdgeInsets.symmetric(
+                                                        horizontal: 4),
+                                                padding:
+                                                    const EdgeInsets.all(12),
+                                                decoration: BoxDecoration(
+                                                  gradient: isSelected
+                                                      ? _colorOptionGradients[
+                                                          option]
+                                                      : null,
+                                                  color: isSelected
+                                                      ? null
+                                                      : Colors.white,
+                                                  borderRadius:
+                                                      BorderRadius.circular(8),
+                                                  border: Border.all(
+                                                    color: isSelected
+                                                        ? Colors.transparent
+                                                        : Colors.grey.shade300,
+                                                    width: isSelected ? 2 : 1,
+                                                  ),
+                                                  boxShadow: isSelected
+                                                      ? [
+                                                          BoxShadow(
+                                                            color: (isColor
+                                                                    ? Colors
+                                                                        .blue
+                                                                    : const Color
+                                                                        .fromARGB(
+                                                                        255,
+                                                                        0,
+                                                                        0,
+                                                                        0))
+                                                                .withOpacity(
+                                                                    0.8),
+                                                            spreadRadius: 0,
+                                                            blurRadius: 0,
+                                                            offset:
+                                                                const Offset(
+                                                                    0, 2),
+                                                          ),
+                                                        ]
+                                                      : null,
+                                                ),
+                                                child: Column(
+                                                  children: [
+                                                    Icon(
+                                                      isColor
+                                                          ? Icons.palette
+                                                          : Icons.gradient,
+                                                      color: isSelected
+                                                          ? Colors.white
+                                                          : Colors
+                                                              .grey.shade600,
+                                                      size: 24,
+                                                    ),
+                                                    const SizedBox(height: 8),
+                                                    Text(
+                                                      option,
+                                                      style: TextStyle(
+                                                        fontSize: 13,
+                                                        fontWeight:
+                                                            FontWeight.w600,
+                                                        color: isSelected
+                                                            ? Colors.white
+                                                            : Colors
+                                                                .grey.shade700,
+                                                      ),
+                                                      textAlign:
+                                                          TextAlign.center,
+                                                    ),
+                                                    if (isSelected) ...[
+                                                      const SizedBox(height: 4),
+                                                      Container(
+                                                        padding:
+                                                            const EdgeInsets
+                                                                .symmetric(
+                                                          horizontal: 8,
+                                                          vertical: 2,
+                                                        ),
+                                                        decoration:
+                                                            BoxDecoration(
+                                                          color: Colors.white
+                                                              .withOpacity(0.3),
+                                                          borderRadius:
+                                                              BorderRadius
+                                                                  .circular(12),
+                                                        ),
+                                                        child: const Text(
+                                                          'Selected',
+                                                          style: TextStyle(
+                                                            fontSize: 10,
+                                                            fontWeight:
+                                                                FontWeight.w600,
+                                                            color: Colors.white,
+                                                          ),
+                                                        ),
+                                                      ),
+                                                    ],
+                                                  ],
+                                                ),
+                                              ),
+                                            ),
+                                          );
+                                        }).toList(),
+                                      ),
+                                    ],
+                                  ),
                                 ),
-                                borderRadius: BorderRadius.circular(8),
                               ),
-                              child: DropdownButton<String>(
-                                value: _selectedColorOption,
-                                hint: const Text('Choose an Option'),
-                                icon: const Icon(Icons.arrow_drop_down),
-                                isExpanded: true,
-                                underline: const SizedBox(),
-                                items:
-                                    _printcolorselection.map((String option) {
-                                  return DropdownMenuItem<String>(
-                                    value: option,
-                                    child: Text(option),
-                                  );
-                                }).toList(),
-                                onChanged: (String? newValue) {
-                                  setState(() {
-                                    _selectedColorOption = newValue;
-                                  });
-                                },
+                            )
+                          ],
+
+                          if (_selectedPrintService != null &&
+                              _selectedColorOption != null) ...[
+                            const SizedBox(height: 8),
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 12, vertical: 8),
+                              decoration: BoxDecoration(
+                                color: Colors.grey.shade50,
+                                borderRadius: BorderRadius.circular(20),
+                                border: Border.all(color: Colors.grey.shade200),
                               ),
-                            ),
-                            Padding(
-                              padding: const EdgeInsets.all(2.0),
-                              child: Text(
-                                'Selected Service and Color: $_selectedPrintService , $_selectedColorOption ',
-                                style: const TextStyle(
-                                    fontSize: 12, color: Colors.blueAccent),
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Container(
+                                    width: 12,
+                                    height: 12,
+                                    decoration: BoxDecoration(
+                                      gradient: _selectedColorOption != null &&
+                                              _colorOptionGradients.containsKey(
+                                                  _selectedColorOption)
+                                          ? _colorOptionGradients[
+                                              _selectedColorOption]
+                                          : LinearGradient(
+                                              colors: [
+                                                Colors.grey.shade400,
+                                                Colors.grey.shade600
+                                              ],
+                                              begin: Alignment.topLeft,
+                                              end: Alignment.bottomRight,
+                                            ),
+                                      shape: BoxShape.circle,
+                                    ),
+                                  ),
+
+                                  const SizedBox(width: 8),
+                                  Text(
+                                    '${_selectedPrintService!.split('\t\t')[0]} • $_selectedColorOption',
+                                    style: TextStyle(
+                                      fontSize: 13,
+                                      color: Colors.grey.shade700,
+                                      fontWeight: FontWeight.w500,
+                                    ),
+                                  ),
+
+                                  // Cross IconButton to clear the selected color option
+                                  IconButton(
+                                    onPressed: () {
+                                      setState(() {
+                                        _selectedColorOption =
+                                            null; // Clear the color selection
+                                        _selectedPrintService = null;
+                                        _showcoloroption = true;
+                                      });
+                                    },
+                                    icon: const Icon(
+                                      Icons.close,
+                                      size: 18,
+                                      color: Colors.grey,
+                                    ),
+                                    padding: EdgeInsets.only(
+                                      right: 1, // Adjust padding dynamically
+                                    ),
+                                  ),
+                                ],
                               ),
                             ),
                           ],
-                          const SizedBox(height: 16),
+
+                          const SizedBox(height: 24),
+
+// Number of Copies Input
                           TextField(
-                            controller: _instructionsController,
+                            controller: _copiesController,
                             decoration: InputDecoration(
-                              labelText: 'Instructions for Printing',
+                              labelText: 'Number of Copies',
+                              labelStyle: TextStyle(
+                                color: Colors.blueGrey.shade800,
+                                fontSize: 14,
+                                fontWeight: FontWeight.w600,
+                              ),
                               border: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(10),
+                                borderRadius: BorderRadius.circular(16),
+                                borderSide: BorderSide(
+                                    color: Colors.blueGrey.shade200, width: 1),
+                              ),
+                              enabledBorder: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(16),
+                                borderSide: BorderSide(
+                                    color: Colors.blueGrey.shade200, width: 1),
                               ),
                               focusedBorder: OutlineInputBorder(
-                                borderSide: const BorderSide(
-                                    color: Colors.blueAccent, width: 2),
-                                borderRadius: BorderRadius.circular(10),
+                                borderRadius: BorderRadius.circular(16),
+                                borderSide: BorderSide(
+                                    color: Colors.blue.shade400, width: 1.5),
                               ),
-                              prefixIcon:
-                                  const Icon(Icons.print, color: Colors.blue),
+                              prefixIcon: Container(
+                                padding: const EdgeInsets.all(
+                                    8), // Reduced padding for smaller icon
+
+                                child: Icon(Icons.copy,
+                                    color: Colors.blue.shade600,
+                                    size: 20), // Smaller icon
+                              ),
                               filled: true,
-                              fillColor: Colors.white,
+                              fillColor: Colors
+                                  .blue.shade50, // Custom background color
+                              contentPadding: const EdgeInsets.symmetric(
+                                  vertical: 16, horizontal: 16),
+                              hintText: 'Enter number of copies',
+                              hintStyle:
+                                  TextStyle(color: Colors.blueGrey.shade300),
+                            ),
+                            keyboardType: TextInputType.number,
+                          ),
+
+                          const SizedBox(height: 20),
+
+// Instructions TextField
+                          TextField(
+                            controller: _instructionsController,
+                            maxLines: 3,
+                            textInputAction: TextInputAction
+                                .done, // This replaces the Enter key with Done (tick)
+                            decoration: InputDecoration(
+                              labelText: 'Special Instructions',
+                              labelStyle: TextStyle(
+                                color: Colors.blueGrey.shade800,
+                                fontSize: 14,
+                                fontWeight: FontWeight.w600,
+                              ),
+                              border: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(16),
+                                borderSide: BorderSide(
+                                    color: Colors.purple.shade200, width: 1),
+                              ),
+                              enabledBorder: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(16),
+                                borderSide: BorderSide(
+                                    color: Colors.purple.shade200, width: 1),
+                              ),
+                              focusedBorder: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(16),
+                                borderSide: BorderSide(
+                                    color: Colors.purple.shade400, width: 1.5),
+                              ),
+                              prefixIcon: Container(
+                                padding: const EdgeInsets.all(
+                                    8), // Reduced padding for smaller icon
+                                child: Icon(Icons.description_outlined,
+                                    color: Colors.purple.shade600,
+                                    size: 20), // Smaller icon
+                              ),
+                              filled: true,
+                              fillColor: Colors
+                                  .purple.shade50, // Custom background color
+                              contentPadding: const EdgeInsets.symmetric(
+                                  vertical: 16, horizontal: 16),
+                              hintText: 'Any Special Instruction...',
+                              hintStyle:
+                                  TextStyle(color: Colors.purple.shade300),
                             ),
                           ),
-                          const SizedBox(height: 16),
-                          ElevatedButton(
-                            onPressed: _pickFiles,
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: Colors.blueAccent,
-                              foregroundColor: Colors.white,
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(10),
+
+                          const SizedBox(height: 24),
+
+// File Selection Button with Clear Icon
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Expanded(
+                                child: ElevatedButton.icon(
+                                  onPressed: _pickFiles,
+                                  icon: const Icon(Icons.attach_file, size: 20),
+                                  label: Text(
+                                    _selectedFiles!.isNotEmpty
+                                        ? '${_selectedFiles.length} Files • ${_getTotalFileSize()} MB'
+                                        : 'Select Files',
+                                  ),
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: Colors.blue.shade50,
+                                    foregroundColor: Colors.blue.shade700,
+                                    padding: const EdgeInsets.symmetric(
+                                        vertical: 16),
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(12),
+                                    ),
+                                    elevation: 0,
+                                  ),
+                                ),
                               ),
-                            ),
-                            child: Text(
-                              _selectedFiles!.isNotEmpty
-                                  ? '${_selectedFiles.length} Files Selected , Total Size: ${_getTotalFileSize()} MB'
-                                  : 'Select Files to Upload',
-                            ),
+                              if (_selectedFiles!.isNotEmpty)
+                                Padding(
+                                  padding: const EdgeInsets.only(left: 8.0),
+                                  child: IconButton(
+                                    onPressed: () {
+                                      setState(() {
+                                        _selectedFiles
+                                            ?.clear(); // Clear the selected files
+                                      });
+                                    },
+                                    icon: const Icon(
+                                      Icons.close,
+                                      color: Colors.grey,
+                                      size: 24,
+                                    ),
+                                    padding: EdgeInsets
+                                        .zero, // Optional: to remove default padding
+                                    constraints:
+                                        const BoxConstraints(), // Optional: to remove extra spacing
+                                  ),
+                                ),
+                            ],
                           ),
                           const SizedBox(height: 16),
-                          ElevatedButton(
-                            onPressed: _addToCart,
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: Colors.greenAccent.shade700,
-                              foregroundColor: Colors.white,
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(10),
+
+                          // Action Buttons
+                          Row(
+                            children: [
+                              Expanded(
+                                child: ElevatedButton(
+                                  onPressed:
+                                      _isButtonEnabled ? _clearAllFields : null,
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: Colors.red.shade50,
+                                    foregroundColor: Colors.red.shade700,
+                                    padding: const EdgeInsets.symmetric(
+                                        vertical: 16),
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(12),
+                                    ),
+                                    elevation: 0,
+                                  ),
+                                  child: const Text(
+                                    'Clear All',
+                                    style:
+                                        TextStyle(fontWeight: FontWeight.w600),
+                                  ),
+                                ),
                               ),
-                              elevation: 4,
-                            ),
-                            child: const Text(
-                              'Add to Cart',
-                              style: TextStyle(
-                                fontWeight: FontWeight.bold,
-                                fontSize: 16,
+                              const SizedBox(width: 12),
+                              Expanded(
+                                flex: 2,
+                                child: ElevatedButton(
+                                  onPressed: _addToCart,
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: Colors.blue,
+                                    foregroundColor: Colors.white,
+                                    padding: const EdgeInsets.symmetric(
+                                        vertical: 16),
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(12),
+                                    ),
+                                    elevation: 0,
+                                  ),
+                                  child: const Text(
+                                    'Add to Cart',
+                                    style:
+                                        TextStyle(fontWeight: FontWeight.w600),
+                                  ),
+                                ),
                               ),
-                            ),
+                            ],
                           ),
-                          const SizedBox(height: 16),
-                          ElevatedButton(
-                            onPressed:
-                                _isButtonEnabled ? _clearAllFields : null,
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor:
-                                  _isButtonEnabled ? errorRed : Colors.grey,
-                              foregroundColor: Colors.white.withOpacity(0.5),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(10),
-                              ),
-                              elevation: 0,
-                            ),
-                            child: const Text(
-                              'Delete',
-                              style: TextStyle(
-                                color: Colors.white,
-                                fontWeight: FontWeight.bold,
-                                fontSize: 16,
-                              ),
-                            ),
-                          )
                         ],
                       ),
                     ),

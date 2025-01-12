@@ -38,10 +38,13 @@ dependencies:
   file_picker: ^8.1.4
   google_nav_bar: ^5.0.6
   widgets_easier: ^0.0.10
-  mongo_dart: ^0.10.3
   sqflite: ^2.4.1
   slider_button: ^2.1.0
+  http: ^1.2.2
+  mongo_dart: ^0.10.4
   url_launcher: ^6.3.1
+  fluentui_system_icons: ^1.1.270
+  dart_pdf_reader: ^0.5.0 
   path_provider: ^2.0.10
   open_file: ^3.5.10
   mappls_gl: ^1.1.0  
@@ -63,7 +66,12 @@ dev_dependencies:
 
 # The following section is specific to Flutter packages.
 flutter:
-
+  assets:
+    - assets/icons/singlesheet.png
+    - assets/icons/doublesheet.png
+    - assets/icons/calico.png
+    - assets/icons/spiral.png
+    - assets/icons/bondsheet.png
   # The following line ensures that the Material Icons font is
   # included with your application, so that you can use the icons in
   # the material Icons class.
